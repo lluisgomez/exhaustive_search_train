@@ -13,6 +13,7 @@ using namespace std;
 using namespace cv;
 
 bool sortRects (Rect i,Rect j) { return (i.x<j.x); }
+bool sortContours (vector<Point> i, vector<Point> j) { return (boundingRect(i).x<boundingRect(j).x); }
 
 int main( int argc, char** argv )
 {
@@ -43,6 +44,7 @@ int main( int argc, char** argv )
       findContours( gt, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
       vector<Rect> char_boxes;
+      vector< vector<Point> > char_contours;
 
       for( int i = 0; i< contours.size(); i++ )
       {
@@ -51,6 +53,7 @@ int main( int argc, char** argv )
         if((hierarchy[i][3] == 0) && ((bbox.width>6) || (bbox.height>6)))
         {
           char_boxes.push_back(bbox);
+          char_contours.push_back(contours[i]);
           //Mat drawing = Mat::zeros( gt.size(), CV_8UC1);
           //drawContours( drawing, contours, i, Scalar(255), CV_FILLED, 8, hierarchy, 0, Point() );
           //for( int j = 0; j< contours.size(); j++ )
@@ -68,6 +71,7 @@ int main( int argc, char** argv )
         continue;
       
       sort(char_boxes.begin(),char_boxes.end(), sortRects);
+      sort(char_contours.begin(),char_contours.end(), sortContours);
 
 
       for( int i = 0; i< char_boxes.size()-1; i++ )
@@ -82,6 +86,22 @@ int main( int argc, char** argv )
 
         //cout << height_ratios[height_ratios.size()-1] << " " << centroid_angles[height_ratios.size()-1] << " " << norm_distances[height_ratios.size()-1] << endl;
         cout << "." << flush;
+
+        //Set this to true if you want to visualize each possible pair
+        if (false)
+        {
+          Mat drawing = Mat::zeros( gt.size(), CV_8UC3);
+          drawContours(drawing, char_contours, i, Scalar(255,255,255), CV_FILLED);
+          drawContours(drawing, char_contours, i+1, Scalar(255,255,255), CV_FILLED);
+          rectangle(drawing, char_boxes[i].tl(), char_boxes[i].br(), Scalar(255,0,0));
+          rectangle(drawing, char_boxes[i+1].tl(), char_boxes[i+1].br(), Scalar(255,0,0));
+          line(drawing, center_i, center_j, Scalar(0,0,255));
+
+          resize(drawing,drawing,Size(800,600));
+          imshow( "pair features", drawing );
+          imwrite( "pair_features.jpg", drawing );
+          waitKey(0);
+        }
       }
 
     } // end for all GT files

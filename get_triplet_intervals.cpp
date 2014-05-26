@@ -264,6 +264,7 @@ int main( int argc, char** argv )
   
           resize(drawing,drawing,Size(800,600));
           imshow( "line estimates", drawing );
+          imwrite( "line_estimates.jpg", drawing );
           waitKey(0);
         }
 
