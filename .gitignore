@@ -1,6 +1,11 @@
 get_pair_intervals
 get_triplet_intervals
+get_sequence_intervals
 CMakeFiles
 cmake_install.cmake
 Makefile
 CMakeCache.txt
+*jpg
+*png
+*~
+.*swp

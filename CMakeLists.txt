@@ -10,9 +10,11 @@ find_package(OpenCV REQUIRED)
 
 ADD_EXECUTABLE(get_pair_intervals get_pair_intervals.cpp)
 ADD_EXECUTABLE(get_triplet_intervals get_triplet_intervals.cpp)
+ADD_EXECUTABLE(get_sequence_intervals get_sequence_intervals.cpp)
 
 FIND_PACKAGE(OpenCV REQUIRED)
 IF(OpenCV_FOUND)
   TARGET_LINK_LIBRARIES(get_pair_intervals ${OpenCV_LIBS})
   TARGET_LINK_LIBRARIES(get_triplet_intervals ${OpenCV_LIBS})
+  TARGET_LINK_LIBRARIES(get_sequence_intervals ${OpenCV_LIBS})
 ENDIF()
