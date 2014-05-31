@@ -18,23 +18,31 @@ bool sortContours (vector<Point> i, vector<Point> j) { return (boundingRect(i).x
 int main( int argc, char** argv )
 {
 
-    if (argc < 2)
+
+    if ((argc < 3) || (argc%2 != 1))
     {
 
-      cout << "Usage: ./get_pair_intervals <gt_file1> <gt_file2> ... <gt_fileN>" << endl;
+      cout << "Usage: ./get_pair_intervals <file1> <gt_file1> <file2> <gt_file2> ... <fileN> <gt_fileN>" << endl;
       return -1;
 
-    } 
+    }
 
     vector<float> height_ratios;
     vector<float> centroid_angles;
     vector<float> norm_distances;
+    vector<int> grey_distances;
+    vector<float> lab_distances;
     
-    for (int f=1; f<argc; f++) {
+    for (int f=1; f<argc; f=f+2) {
 
 
-      Mat gt;
-      gt = imread(argv[f]);
+      Mat gt,src,lab,grey;
+      src = imread(argv[f]);
+      cvtColor(src, lab, CV_RGB2Lab);
+      cvtColor(src, grey, CV_RGB2GRAY);
+      gt = imread(argv[f+1]);
+      //imshow( "src", src );
+      //imshow( "gt", gt );
       cvtColor(gt, gt, CV_RGB2GRAY);
       threshold(gt, gt, 1, 255, CV_THRESH_BINARY_INV);
      
@@ -45,6 +53,12 @@ int main( int argc, char** argv )
 
       vector<Rect> char_boxes;
       vector< vector<Point> > char_contours;
+      vector<int> grey_means;
+      vector< vector<int> > lab_means;
+      vector<int> tmp;
+      lab_means.push_back(tmp);
+      lab_means.push_back(tmp);
+      lab_means.push_back(tmp);
 
       for( int i = 0; i< contours.size(); i++ )
       {
@@ -54,14 +68,25 @@ int main( int argc, char** argv )
         {
           char_boxes.push_back(bbox);
           char_contours.push_back(contours[i]);
-          //Mat drawing = Mat::zeros( gt.size(), CV_8UC1);
-          //drawContours( drawing, contours, i, Scalar(255), CV_FILLED, 8, hierarchy, 0, Point() );
-          //for( int j = 0; j< contours.size(); j++ )
-          //{
-          //  if (hierarchy[j][3] == i)
-          //    drawContours( drawing, contours, j, Scalar(0), CV_FILLED, 8, hierarchy, 0, Point() );
-          //}
-          //imshow( "gt contours", drawing );
+          Mat mask = Mat::zeros( gt.size(), CV_8UC1);
+          drawContours( mask, contours, i, Scalar(255), CV_FILLED, 8, hierarchy, 0, Point() );
+          drawContours( mask, contours, i, Scalar(0), 1, 8, hierarchy, 0, Point() );
+          for( int j = 0; j< contours.size(); j++ )
+          {
+            if (hierarchy[j][3] == i)
+              drawContours( mask, contours, j, Scalar(0), CV_FILLED, 8, hierarchy, 0, Point() );
+          }
+          Scalar mean,std;
+          meanStdDev(grey,mean,std,mask);
+          //cout << "grey mean " << mean[0] << endl;
+          grey_means.push_back((int)mean[0]);
+          Scalar mean_v,std_v;
+          meanStdDev(lab,mean_v,std_v,mask);
+          lab_means[0].push_back((int)mean_v[0]);
+          lab_means[1].push_back((int)mean_v[1]);
+          lab_means[2].push_back((int)mean_v[2]);
+          //cout << "lab mean " << mean_v[0] << "," << mean_v[1] << "," << mean_v[2] << endl;
+          //imshow( "gt contours", mask );
           //waitKey(0);
         }
       }
@@ -84,10 +109,15 @@ int main( int argc, char** argv )
         int avg_width = (char_boxes[i].width + char_boxes[i+1].width) / 2;
         norm_distances.push_back((float)(char_boxes[i+1].x-(char_boxes[i].x+char_boxes[i].width))/avg_width);
 
+        grey_distances.push_back(abs(grey_means[i]-grey_means[i+1]));
+        lab_distances.push_back(sqrt(pow(lab_means[1][i]-lab_means[1][i+1],2)+
+                                     pow(lab_means[2][i]-lab_means[2][i+1],2)));
+
         //cout << height_ratios[height_ratios.size()-1] << " " << centroid_angles[height_ratios.size()-1] << " " << norm_distances[height_ratios.size()-1] << endl;
         cout << "." << flush;
 
         //Set this to true if you want to visualize each possible pair
+        //if (grey_distances[grey_distances.size()-1] > 110)
         if (false)
         {
           Mat drawing = Mat::zeros( gt.size(), CV_8UC3);
@@ -98,6 +128,8 @@ int main( int argc, char** argv )
           line(drawing, center_i, center_j, Scalar(0,0,255));
 
           resize(drawing,drawing,Size(800,600));
+          imshow( "src", src );
+          imshow( "gt", gt );
           imshow( "pair features", drawing );
           imwrite( "pair_features.jpg", drawing );
           waitKey(0);
@@ -114,4 +146,8 @@ int main( int argc, char** argv )
     cout << " centroid angles      min=" << minValue << " max=" << maxValue << endl;
     minMaxIdx(Mat(norm_distances), &minValue, &maxValue);
     cout << " normalized distances min=" << minValue << " max=" << maxValue << endl;
+    minMaxIdx(Mat(grey_distances), &minValue, &maxValue);
+    cout << " grey_distance        min=" << minValue << " max=" << maxValue << endl;
+    minMaxIdx(Mat(lab_distances), &minValue, &maxValue);
+    cout << " (L)ab_distance       min=" << minValue << " max=" << maxValue << endl;
 }
